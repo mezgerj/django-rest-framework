@@ -1450,6 +1450,42 @@ class ChoiceField(Field):
     choices = property(_get_choices, _set_choices)
 
 
+class TypedChoiceField(ChoiceField):
+
+    def __init__(self,*args,**kwargs):
+        self.coerce = kwargs.pop('coerce',lambda val: val)
+        self.empty_value = kwargs.pop('empty_value','')
+        super().__init__(*args, **kwargs)
+
+    def to_internal_value(self, data):
+        if data == '' and self.allow_blank:
+            return self.empty_value
+        try:
+            return self.coerce(data)
+        except (ValueError, TypeError, ValidationError):
+            self.fail('invalid_choice', input=data)
+
+    def to_representation(self, value):
+        if value == self.empty_value:
+            return value
+        return self.choice_strings_to_values.get(str(value), value)
+
+    def _coerce(self, value):
+        """
+        Validate that the value can be coerced to the right type (if not empty).
+        """
+        if value == self.empty_value or value in self.empty_values:
+            return self.empty_value
+        try:
+            value = self.coerce(value)
+        except (ValueError, TypeError, ValidationError):
+            raise ValidationError(
+                self.error_messages['invalid_choice'],
+                code='invalid_choice',
+                params={'value': value},
+            )
+        return value
+
 class MultipleChoiceField(ChoiceField):
     default_error_messages = {
         'invalid_choice': _('"{input}" is not a valid choice.'),

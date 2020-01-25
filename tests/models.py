@@ -1,3 +1,4 @@
+import datetime
 import uuid
 
 from django.db import models
@@ -110,3 +111,17 @@ class OneToOnePKSource(RESTFrameworkModel):
     target = models.OneToOneField(
         OneToOneTarget, primary_key=True,
         related_name='required_source', on_delete=models.CASCADE)
+
+
+class DurationFieldModel(RESTFrameworkModel):
+    """Test where the Duration Field is a set of choices"""
+    EMAIL_FREQUENCY_CHOICES = (
+        (datetime.timedelta(days=1), 'Daily'),
+        (datetime.timedelta(weeks=1), 'Weekly'),
+        (datetime.timedelta(weeks=4), 'Monthly'),
+    )
+
+    email_frequency = models.DurationField(blank=True, null=True, choices=EMAIL_FREQUENCY_CHOICES)
+
+
+

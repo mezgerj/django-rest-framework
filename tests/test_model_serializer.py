@@ -24,8 +24,9 @@ from django.test import TestCase
 
 from rest_framework import serializers
 from rest_framework.compat import postgres_fields
+from rest_framework.exceptions import ValidationError
 
-from .models import NestedForeignKeySource
+from .models import NestedForeignKeySource, DurationFieldModel
 
 
 def dedent(blocktext):
@@ -1199,6 +1200,49 @@ class Test5004UniqueChoiceField(TestCase):
         serializer = TestUniqueChoiceSerializer(data={'name': 'choice1'})
         assert not serializer.is_valid()
         assert serializer.errors == {'name': ['unique choice model with this name already exists.']}
+
+
+class Test4430TypedChoiceField(TestCase):
+    EMAIL_FREQUENCY_CHOICES = (
+        (datetime.timedelta(days=1), 'Daily'),
+        (datetime.timedelta(weeks=1), 'Weekly'),
+        (datetime.timedelta(weeks=4), 'Monthly'),
+    )
+
+    def test_typed_duration_field_choice_is_found(self):
+
+        def coerce_func(val):
+            return datetime.timedelta(seconds=val)
+
+        class TestTypedDurationFieldSerializer(serializers.ModelSerializer):
+            class Meta:
+                model = DurationFieldModel
+                fields = '__all__'
+
+            email_frequency = serializers.TypedChoiceField(choices=self.EMAIL_FREQUENCY_CHOICES,coerce=coerce_func)
+
+        DurationFieldModel.objects.create(email_frequency=datetime.timedelta(days=1))
+        serializer = TestTypedDurationFieldSerializer(data={'email_frequency': 86400.0})
+        serializer.is_valid(raise_exception=True)
+
+    def test_typed_duration_field_choice_is_not_found(self):
+
+        def coerce_func(val):
+            return datetime.timedelta(seconds=val)
+
+        class TestTypedDurationFieldSerializer(serializers.ModelSerializer):
+            class Meta:
+                model = DurationFieldModel
+                fields = '__all__'
+
+            email_frequency = serializers.TypedChoiceField(choices=self.EMAIL_FREQUENCY_CHOICES,coerce=coerce_func)
+
+        DurationFieldModel.objects.create(email_frequency=datetime.timedelta(days=1))
+        serializer = TestTypedDurationFieldSerializer(data={'email_frequency': 'not_valid'})
+        with self.assertRaises(ValidationError):
+            serializer.is_valid(raise_exception=True)
+
+
 
 
 class TestFieldSource(TestCase):

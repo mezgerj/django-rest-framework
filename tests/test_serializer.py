@@ -11,7 +11,7 @@ from rest_framework import exceptions, fields, relations, serializers
 from rest_framework.fields import Field
 
 from .models import (
-    ForeignKeyTarget, NestedForeignKeySource, NullableForeignKeySource
+    ForeignKeyTarget, NestedForeignKeySource, NullableForeignKeySource, DurationFieldModel
 )
 from .utils import MockObject
 
